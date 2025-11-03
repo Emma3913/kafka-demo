@@ -1,92 +1,145 @@
-# Versión del formato de docker-compose
 version: "3.1"
 
 services:
-  # Servicio de Zookeeper: es el coordinador de Kafka, gestiona la configuración y estado de los brokers
   zookeeper:
-    # Imagen oficial de Zookeeper proporcionada por Confluent
     image: confluentinc/cp-zookeeper:5.4.0
-    # Nombre de host dentro de la red del contenedor
     hostname: zookeeper
-    # Conecta este servicio a la red "kafka" definida más abajo
     networks:
       - kafka
-    # Mapea el puerto 2181 del contenedor al 2181 del host (para poder acceder desde fuera)
     ports:
       - "2181:2181"
-    # Variables de entorno específicas para configurar Zookeeper
     environment:
-      # Puerto en el que Zookeeper escucha conexiones de clientes
-      - ZOOKEEPER_CLIENT_PORT: 2181
-      # Tiempo de "tick" usado internamente para sincronización entre servidores (en milisegundos)
-      - ZOOKEEPER_TICK_TIME: 2000
-    # Define una verificación de salud (healthcheck) para asegurarse de que el servicio está activo
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
     healthcheck:
-      # Comando que se ejecuta para verificar si Zookeeper está escuchando en el puerto 2181
       test: ["CMD", "nc", "-z", "localhost", "2181"]
-      # Intervalo entre pruebas
       interval: 10s
-      # Tiempo máximo de espera por respuesta
       timeout: 10s
-      # Número de intentos antes de marcar el servicio como no saludable
       retries: 5
 
-  # Servicio del Broker de Kafka (el que envía y recibe los mensajes)
   broker:
-    # Imagen del servidor Kafka de Confluent
     image: confluentinc/cp-server:5.4.0
-    # Nombre de host dentro del contenedor
     hostname: broker
-    # Conecta este servicio a la misma red "kafka"
     networks:
       - kafka
-    # Indica que este servicio depende de Zookeeper y debe esperar a que esté saludable antes de iniciar
     depends_on:
       zookeeper:
         condition: service_healthy
-    # Mapea el puerto 9092 del contenedor al 9092 del host (para acceso externo)
     ports:
       - "9092:9092"
-    # Variables de entorno que configuran el comportamiento de Kafka
     environment:
-      # Identificador único del broker dentro del clúster
       KAFKA_BROKER_ID: 1
-      # Dirección de conexión al servicio Zookeeper
       KAFKA_ZOOKEEPER_CONNECT: "zookeeper:2181"
-      # Define los protocolos de seguridad disponibles para los listeners
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
-      # Define las direcciones (internas y externas) que anunciará Kafka
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://broker:29092,PLAINTEXT_HOST://localhost:9092
-      # Reporte de métricas internas de Confluent
       KAFKA_METRIC_REPORTERS: io.confluent.metrics.reporter.ConfluentMetricsReporter
-      # Factor de replicación del tópico de offsets (cuántas copias existen)
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-      # Tiempo inicial de espera antes de redistribuir consumidores en un grupo
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
-      # Factor de replicación para los tópicos de licencias de Confluent
       KAFKA_CONFLUENT_LICENSE_TOPIC_REPLICATION_FACTOR: 1
-      # Crea automáticamente un tópico de prueba al iniciar (nombre: test_topic, 1 partición, 3 réplicas)
       KAFKA_CREATE_TOPICS: "test_topic:1:3"
-      # Configuraciones adicionales del reporte de métricas de Confluent
       CONFLUENT_METRICS_REPORTER_BOOTSTRAP_SERVERS: broker:29092
       CONFLUENT_METRICS_REPORTER_ZOOKEEPER_CONNECT: zookeeper:2181
       CONFLUENT_METRICS_REPORTER_TOPIC_REPLICAS: 1
       CONFLUENT_METRICS_ENABLE: "true"
-      # ID anónimo para telemetría de Confluent (no obligatorio)
       CONFLUENT_SUPPORT_CUSTOMER_ID: "anonymous"
-    # Verificación de salud del broker de Kafka
     healthcheck:
-      # Comprueba si el broker responde en el puerto 9092
       test: ["CMD", "nc", "-z", "localhost", "9092"]
-      # Intervalo entre verificaciones
       interval: 10s
-      # Tiempo máximo de espera por respuesta
       timeout: 10s
-      # Número de intentos antes de marcar el servicio como fallido
       retries: 5
 
-# Definición de redes utilizadas por los servicios
 networks:
   kafka:
-    # Usa el driver "bridge", el tipo de red por defecto en Docker
     driver: bridge
+# Versión del formato de docker-compose
+# version: "3.1"
+
+# services:
+#   # Servicio de Zookeeper: es el coordinador de Kafka, gestiona la configuración y estado de los brokers
+#   zookeeper:
+#     # Imagen oficial de Zookeeper proporcionada por Confluent
+#     image: confluentinc/cp-zookeeper:5.4.0
+#     # Nombre de host dentro de la red del contenedor
+#     hostname: zookeeper
+#     # Conecta este servicio a la red "kafka" definida más abajo
+#     networks:
+#       - kafka
+#     # Mapea el puerto 2181 del contenedor al 2181 del host (para poder acceder desde fuera)
+#     ports:
+#       - "2181:2181"
+#     # Variables de entorno específicas para configurar Zookeeper
+#     environment:
+#       # Puerto en el que Zookeeper escucha conexiones de clientes
+#       - ZOOKEEPER_CLIENT_PORT: 2181
+#       # Tiempo de "tick" usado internamente para sincronización entre servidores (en milisegundos)
+#       - ZOOKEEPER_TICK_TIME: 2000
+#     # Define una verificación de salud (healthcheck) para asegurarse de que el servicio está activo
+#     healthcheck:
+#       # Comando que se ejecuta para verificar si Zookeeper está escuchando en el puerto 2181
+#       test: ["CMD", "nc", "-z", "localhost", "2181"]
+#       # Intervalo entre pruebas
+#       interval: 10s
+#       # Tiempo máximo de espera por respuesta
+#       timeout: 10s
+#       # Número de intentos antes de marcar el servicio como no saludable
+#       retries: 5
+
+#   # Servicio del Broker de Kafka (el que envía y recibe los mensajes)
+#   broker:
+#     # Imagen del servidor Kafka de Confluent
+#     image: confluentinc/cp-server:5.4.0
+#     # Nombre de host dentro del contenedor
+#     hostname: broker
+#     # Conecta este servicio a la misma red "kafka"
+#     networks:
+#       - kafka
+#     # Indica que este servicio depende de Zookeeper y debe esperar a que esté saludable antes de iniciar
+#     depends_on:
+#       zookeeper:
+#         condition: service_healthy
+#     # Mapea el puerto 9092 del contenedor al 9092 del host (para acceso externo)
+#     ports:
+#       - "9092:9092"
+#     # Variables de entorno que configuran el comportamiento de Kafka
+#     environment:
+#       # Identificador único del broker dentro del clúster
+#       KAFKA_BROKER_ID: 1
+#       # Dirección de conexión al servicio Zookeeper
+#       KAFKA_ZOOKEEPER_CONNECT: "zookeeper:2181"
+#       # Define los protocolos de seguridad disponibles para los listeners
+#       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+#       # Define las direcciones (internas y externas) que anunciará Kafka
+#       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://broker:29092,PLAINTEXT_HOST://localhost:9092
+#       # Reporte de métricas internas de Confluent
+#       KAFKA_METRIC_REPORTERS: io.confluent.metrics.reporter.ConfluentMetricsReporter
+#       # Factor de replicación del tópico de offsets (cuántas copias existen)
+#       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+#       # Tiempo inicial de espera antes de redistribuir consumidores en un grupo
+#       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+#       # Factor de replicación para los tópicos de licencias de Confluent
+#       KAFKA_CONFLUENT_LICENSE_TOPIC_REPLICATION_FACTOR: 1
+#       # Crea automáticamente un tópico de prueba al iniciar (nombre: test_topic, 1 partición, 3 réplicas)
+#       KAFKA_CREATE_TOPICS: "test_topic:1:3"
+#       # Configuraciones adicionales del reporte de métricas de Confluent
+#       CONFLUENT_METRICS_REPORTER_BOOTSTRAP_SERVERS: broker:29092
+#       CONFLUENT_METRICS_REPORTER_ZOOKEEPER_CONNECT: zookeeper:2181
+#       CONFLUENT_METRICS_REPORTER_TOPIC_REPLICAS: 1
+#       CONFLUENT_METRICS_ENABLE: "true"
+#       # ID anónimo para telemetría de Confluent (no obligatorio)
+#       CONFLUENT_SUPPORT_CUSTOMER_ID: "anonymous"
+#     # Verificación de salud del broker de Kafka
+#     healthcheck:
+#       # Comprueba si el broker responde en el puerto 9092
+#       test: ["CMD", "nc", "-z", "localhost", "9092"]
+#       # Intervalo entre verificaciones
+#       interval: 10s
+#       # Tiempo máximo de espera por respuesta
+#       timeout: 10s
+#       # Número de intentos antes de marcar el servicio como fallido
+#       retries: 5
+
+# # Definición de redes utilizadas por los servicios
+# networks:
+#   kafka:
+#     # Usa el driver "bridge", el tipo de red por defecto en Docker
+#     driver: bridge
